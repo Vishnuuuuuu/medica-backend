@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npx prisma generate",
+    "render-build": "npm install && npm run build && npx prisma db push",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
@@ -28,6 +29,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@apollo/server": "^4.10.0",
     "@prisma/client": "^5.7.1",

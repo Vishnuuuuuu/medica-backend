@@ -45,7 +45,7 @@ async function startServer() {
     '/graphql',
     cors<cors.CorsRequest>({
       origin: process.env.NODE_ENV === 'production' 
-        ? ['https://medica-frontend.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
+        ? ['https://medica-frontend.vercel.app', process.env.FRONTEND_URL].filter((url): url is string => Boolean(url))
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
       credentials: true,
     }),
