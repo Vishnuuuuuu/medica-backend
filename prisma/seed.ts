@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,20 @@ async function main() {
 
   // Create sample users
   console.log('👥 Creating users...');
+  
+  // Create admin manager (your account)
+  console.log('🔑 Creating admin manager account...');
+  const hashedPassword = await bcrypt.hash('Vishnu@123', 12);
+  const adminManager = await prisma.user.create({
+    data: {
+      auth0Id: 'email|itsvishnups@admin.com',
+      email: 'itsvishnups@admin.com',
+      name: 'Vishnu PS (Admin)',
+      password: hashedPassword,
+      role: UserRole.MANAGER,
+    },
+  });
+  console.log('✅ Created admin manager:', adminManager.name);
   
   // Create managers
   const manager1 = await prisma.user.create({
@@ -70,6 +85,7 @@ async function main() {
   });
 
   console.log('✅ Created users:', {
+    admin: adminManager.name,
     managers: [manager1.name, manager2.name],
     careworkers: [careworker1.name, careworker2.name, careworker3.name, careworker4.name],
   });
