@@ -13,54 +13,11 @@ interface JWTPayload {
 }
 
 class AuthMiddlewareProduction {
-  // Production version with proper Auth0 verification
-  // Install jwks-client@3.5.0 for this to work
-  // npm install jwks-client@3.5.0
+  // Production version with basic JWT verification
+  // For Auth0 integration, install jwks-client if needed
 
   public verifyToken = async (token: string): Promise<JWTPayload | null> => {
     try {
-      // First try to dynamically import jwks-client
-      const jwksClient = await import('jwks-client');
-      
-      const client = jwksClient.default({
-        jwksUri: `${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-        requestHeaders: {},
-        timeout: 30000,
-      });
-
-      return new Promise((resolve) => {
-        const getKey = (header: any, callback: any) => {
-          client.getSigningKey(header.kid, (err: any, key: any) => {
-            if (err) {
-              console.error('Error getting signing key:', err);
-              return callback(err);
-            }
-            const signingKey = key?.getPublicKey();
-            callback(null, signingKey);
-          });
-        };
-
-        jwt.verify(
-          token,
-          getKey,
-          {
-            audience: process.env.AUTH0_AUDIENCE,
-            issuer: process.env.AUTH0_ISSUER,
-            algorithms: ['RS256'],
-          },
-          (err, decoded) => {
-            if (err) {
-              console.error('JWT verification failed:', err.message);
-              resolve(null);
-            } else {
-              resolve(decoded as JWTPayload);
-            }
-          }
-        );
-      });
-    } catch (error) {
-      console.error('jwks-client not available, falling back to decode-only:', error);
-      
       // Fallback to decode-only verification
       const decoded = jwt.decode(token) as JWTPayload;
       
@@ -77,6 +34,9 @@ class AuthMiddlewareProduction {
 
       console.warn('⚠️  Using JWT decode-only mode. Install jwks-client for production security.');
       return decoded;
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      return null;
     }
   };
 

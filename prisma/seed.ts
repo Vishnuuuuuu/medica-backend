@@ -3,6 +3,19 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// Define the shift data type
+interface ShiftData {
+  userId: string;
+  clockInAt: Date;
+  clockOutAt?: Date;
+  clockInNote?: string;
+  clockOutNote?: string;
+  clockInLat?: number;
+  clockInLng?: number;
+  clockOutLat?: number;
+  clockOutLng?: number;
+}
+
 async function main() {
   console.log('🌱 Starting comprehensive database seed...');
 
@@ -94,7 +107,7 @@ async function main() {
   console.log('⏰ Creating shifts for the past 7 days...');
   
   const now = new Date();
-  const shifts = [];
+  const shifts: ShiftData[] = [];
 
   // Helper function to create dates
   const createDate = (daysAgo: number, hour: number, minute: number = 0) => {
@@ -237,7 +250,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error('❌ Seed failed:', e);
-    process.exit(1);
+    throw e;
   })
   .finally(async () => {
     await prisma.$disconnect();
