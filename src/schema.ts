@@ -52,6 +52,27 @@ export const typeDefs = gql`
     lng: Float
   }
 
+  type AuthPayload {
+    token: String!
+    user: User!
+  }
+
+  input SignUpInput {
+    name: String!
+    email: String!
+    password: String!
+    role: UserRole!
+  }
+
+  input LoginInput {
+    email: String!
+    password: String!
+  }
+
+  input GoogleAuthInput {
+    token: String!
+  }
+
   type Query {
     me: User
     shifts: [Shift!]!
@@ -61,6 +82,9 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    signUp(input: SignUpInput!): AuthPayload!
+    login(input: LoginInput!): AuthPayload!
+    googleAuth(input: GoogleAuthInput!): AuthPayload!
     clockIn(input: ClockInInput!): Shift!
     clockOut(input: ClockOutInput!): Shift!
   }

@@ -1,7 +1,11 @@
 import { PrismaClient, UserRole } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 import { ClockInInput, ClockOutInput, Context, DashboardStats } from '../types';
 
 const prisma = new PrismaClient();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const resolvers = {
   Query: {
@@ -117,6 +121,164 @@ export const resolvers = {
   },
 
   Mutation: {
+    signUp: async (_: any, { input }: { input: { name: string; email: string; password: string; role: UserRole } }) => {
+      const { name, email, password, role } = input;
+
+      // Only allow CAREWORKER signups for now
+      if (role !== UserRole.CAREWORKER) {
+        throw new Error('Only care worker signup is currently allowed');
+      }
+
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        throw new Error('User with this email already exists');
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create user with email-based auth0Id for compatibility
+      const user = await prisma.user.create({
+        data: {
+          auth0Id: `email|${email}`,
+          email,
+          name,
+          password: hashedPassword,
+          role,
+        },
+        include: { shifts: true },
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          sub: user.auth0Id, 
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          userId: user.id 
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      return {
+        token,
+        user,
+      };
+    },
+
+    login: async (_: any, { input }: { input: { email: string; password: string } }) => {
+      const { email, password } = input;
+
+      // Find user by email
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: { shifts: true },
+      });
+
+      if (!user) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Verify password
+      if (user.password) {
+        // User has a password stored (email-based auth)
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+          throw new Error('Invalid email or password');
+        }
+      } else {
+        // User doesn't have a password (OAuth-based auth)
+        // For migration purposes, allow login but should set password later
+        console.log(`User ${email} logging in without password (OAuth migration)`);
+      }
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          sub: user.auth0Id, 
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          userId: user.id 
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      return {
+        token,
+        user,
+      };
+    },
+
+    googleAuth: async (_: any, { input }: { input: { token: string } }) => {
+      try {
+        // Verify the Google token
+        const ticket = await googleClient.verifyIdToken({
+          idToken: input.token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        if (!payload) {
+          throw new Error('Invalid Google token');
+        }
+
+        const { email, name, picture } = payload;
+
+        if (!email) {
+          throw new Error('No email found in Google account');
+        }
+
+        // Check if user exists
+        let user = await prisma.user.findUnique({
+          where: { email },
+          include: { shifts: true },
+        });
+
+        // If user doesn't exist, create a new care worker account
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              auth0Id: `google|${payload.sub}`,
+              email,
+              name: name || 'Google User',
+              role: UserRole.CAREWORKER, // Default role for Google sign-ups
+              // No password needed for OAuth users
+            },
+            include: { shifts: true },
+          });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+          { 
+            sub: user.auth0Id, 
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            userId: user.id 
+          },
+          process.env.JWT_SECRET || 'your-secret-key',
+          { expiresIn: '7d' }
+        );
+
+        return {
+          token,
+          user,
+        };
+      } catch (error) {
+        console.error('Google auth error:', error);
+        throw new Error('Failed to authenticate with Google');
+      }
+    },
+
     clockIn: async (_: any, { input }: { input: ClockInInput }, context: Context) => {
       if (!context.user) {
         throw new Error('Not authenticated');
