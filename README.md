@@ -2,6 +2,25 @@
 
 A robust Node.js/Express backend API for managing care worker shifts, locations, and user data with Auth0 integration, GPS-based tracking, and real-time data processing.
 
+## 🌐 **Live Demo**
+
+**Backend API:** [https://medica-backend-xovg.onrender.com](https://medica-backend-xovg.onrender.com)  
+**Frontend URL:** [https://medica-frontend.vercel.app/](https://medica-frontend.vercel.app/)  
+**Health Check:** [https://medica-backend-xovg.onrender.com/health](https://medica-backend-xovg.onrender.com/health)
+
+## 🔐 **Test Credentials**
+
+### **Admin/Manager Account:**
+- **Email:** `itsvishnups@admin.com`
+- **Password:** `Vishnu@123`
+- **Role:** Manager (Full access to backend APIs, staff management, analytics)
+
+### **Authentication System:**
+- **Auth0 Integration** - Secure JWT token validation and user authentication
+- **Role-Based Access Control** - CAREWORKER and MANAGER roles with different permissions
+- **Automatic User Creation** - Users created in database upon first Auth0 login
+- **Google OAuth Support** - Alternative authentication method
+
 ## 🚀 Features
 
 ### Authentication & User Management
