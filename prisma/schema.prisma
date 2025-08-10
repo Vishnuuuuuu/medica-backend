@@ -31,6 +31,23 @@ model User {
   @@map("users")
 }
 
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  latitude    Float
+  longitude   Float
+  radius      Float    @default(2000) // Radius in meters (default 2km)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shifts Shift[]
+
+  @@map("locations")
+}
+
 model Shift {
   id           String    @id @default(cuid())
   clockInAt    DateTime
@@ -45,8 +62,10 @@ model Shift {
   updatedAt    DateTime  @updatedAt
 
   // Relations
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
 
   @@map("shifts")
 }

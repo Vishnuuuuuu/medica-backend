@@ -7,9 +7,11 @@ import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';
 
-import AuthMiddleware from './middleware/auth-oauth';
-import { resolvers } from './resolvers';
-import { typeDefs } from './schema';
+import AuthMiddleware from './middleware/auth-production';
+import { resolvers } from './resolvers/auth0';
+import authRoutes from './routes/auth';
+import shiftsRoutes from './routes/shifts';
+import { typeDefs } from './schema/auth0';
 import { Context } from './types';
 
 // Load environment variables
@@ -40,6 +42,10 @@ async function startServer() {
 
   await server.start();
 
+  // Global middleware
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
   // Middleware
   app.use(
     '/graphql',
@@ -54,13 +60,14 @@ async function startServer() {
       context: async ({ req }): Promise<Context> => {
         let user = null;
 
-        // Extract and verify OAuth JWT token
+        // Extract and verify Auth0 JWT token
         const token = authMiddleware.extractTokenFromHeader(req.headers.authorization);
         
         if (token) {
           try {
             const decodedToken = await authMiddleware.verifyToken(token);
-            if (decodedToken) {
+            if (decodedToken && decodedToken.sub) {
+              // Get or create user by Auth0 ID  
               user = await authMiddleware.getOrCreateUser(decodedToken.sub, decodedToken);
             }
           } catch (error) {
@@ -84,6 +91,20 @@ async function startServer() {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+
+  // Add CORS for all API routes
+  app.use('/api', cors({
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://medica-frontend.vercel.app', process.env.FRONTEND_URL].filter((url): url is string => Boolean(url))
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+
+  // API Routes
+  app.use('/api/auth', authRoutes);
+  app.use('/api', shiftsRoutes);
 
   // Start the server
   const PORT = process.env.PORT || 4000;
