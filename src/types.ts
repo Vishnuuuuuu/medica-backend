@@ -18,9 +18,8 @@ export interface ClockOutInput {
 }
 
 export interface DashboardStats {
-  avgHoursPerDay: number;
-  clockInsToday: number;
-  totalHoursThisWeek: number;
-  userId: string;
-  userName: string;
+  totalStaff: number;
+  activeStaff: number;
+  todayShifts: number;
+  hoursWorked: number;
 }

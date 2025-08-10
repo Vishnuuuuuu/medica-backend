@@ -7,9 +7,9 @@ import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';
 
-import AuthMiddleware from './middleware/auth-oauth';
-import { resolvers } from './resolvers';
-import { typeDefs } from './schema';
+import AuthMiddleware from './middleware/auth-production';
+import { resolvers } from './resolvers/auth0';
+import { typeDefs } from './schema/auth0';
 import { Context } from './types';
 
 // Load environment variables
@@ -54,13 +54,14 @@ async function startServer() {
       context: async ({ req }): Promise<Context> => {
         let user = null;
 
-        // Extract and verify OAuth JWT token
+        // Extract and verify Auth0 JWT token
         const token = authMiddleware.extractTokenFromHeader(req.headers.authorization);
         
         if (token) {
           try {
             const decodedToken = await authMiddleware.verifyToken(token);
-            if (decodedToken) {
+            if (decodedToken && decodedToken.sub) {
+              // Get or create user by Auth0 ID  
               user = await authMiddleware.getOrCreateUser(decodedToken.sub, decodedToken);
             }
           } catch (error) {

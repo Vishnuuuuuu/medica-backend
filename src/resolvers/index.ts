@@ -1,11 +1,9 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { ClockInInput, ClockOutInput, Context, DashboardStats } from '../types';
 
 const prisma = new PrismaClient();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const resolvers = {
   Query: {
@@ -215,68 +213,6 @@ export const resolvers = {
         token,
         user,
       };
-    },
-
-    googleAuth: async (_: any, { input }: { input: { token: string } }) => {
-      try {
-        // Verify the Google token
-        const ticket = await googleClient.verifyIdToken({
-          idToken: input.token,
-          audience: process.env.GOOGLE_CLIENT_ID,
-        });
-
-        const payload = ticket.getPayload();
-        if (!payload) {
-          throw new Error('Invalid Google token');
-        }
-
-        const { email, name, picture } = payload;
-
-        if (!email) {
-          throw new Error('No email found in Google account');
-        }
-
-        // Check if user exists
-        let user = await prisma.user.findUnique({
-          where: { email },
-          include: { shifts: true },
-        });
-
-        // If user doesn't exist, create a new care worker account
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              auth0Id: `google|${payload.sub}`,
-              email,
-              name: name || 'Google User',
-              role: UserRole.CAREWORKER, // Default role for Google sign-ups
-              // No password needed for OAuth users
-            },
-            include: { shifts: true },
-          });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-          { 
-            sub: user.auth0Id, 
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            userId: user.id 
-          },
-          process.env.JWT_SECRET || 'your-secret-key',
-          { expiresIn: '7d' }
-        );
-
-        return {
-          token,
-          user,
-        };
-      } catch (error) {
-        console.error('Google auth error:', error);
-        throw new Error('Failed to authenticate with Google');
-      }
     },
 
     clockIn: async (_: any, { input }: { input: ClockInInput }, context: Context) => {
