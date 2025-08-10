@@ -8,6 +8,8 @@ A robust Node.js/Express backend API for managing care worker shifts, locations,
 **Frontend URL:** [https://medica-frontend.vercel.app/](https://medica-frontend.vercel.app/)  
 **Health Check:** [https://medica-backend-xovg.onrender.com/health](https://medica-backend-xovg.onrender.com/health)
 
+⚠️ **Note:** The backend is hosted on Render's free tier, so the first request may take 50+ seconds to wake up the server. Subsequent requests will be much faster.
+
 ## 🔐 **Test Credentials**
 
 ### **Admin/Manager Account:**
