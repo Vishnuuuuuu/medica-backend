@@ -106,7 +106,6 @@ export const resolvers = {
         }, 0);
 
         stats.push({
-          userId: user.id,
           userName: user.name || user.email,
           avgHoursPerDay: Math.round(avgHoursPerDay * 100) / 100,
           clockInsToday,
